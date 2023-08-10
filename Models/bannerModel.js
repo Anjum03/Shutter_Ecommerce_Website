@@ -6,7 +6,8 @@ const bannerSchema = new mongoose.Schema({
     name : String,
     image : { type: [String],},
     description : String,
-    published : Boolean,
+    published : Boolean, type: String, 
+    product : [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }]
 
 } , {  timestamps : true });
 

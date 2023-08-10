@@ -24,6 +24,8 @@ console.log(transporter.auth, "Transporter");
         // logo: 'https://mailgen.js/img/logo.png',
         // // Custom logo height
         // logoHeight: '30px',
+
+        
         name: "shutters",
 
         link :'https://mailgen.js/'

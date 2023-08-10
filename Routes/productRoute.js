@@ -3,6 +3,7 @@
 const router = require('express').Router();
 const Product = require('../Models/productModel');
 const multer = require('multer');
+const Category = require('../Models/bannerModel');
 
 const Storage = multer.diskStorage({
     destination: 'uploads',
@@ -39,17 +40,30 @@ router.post('/addProduct', async (req, res) => {
         const imageUrls = imageFileNames.map(fileName =>{
             return `${req.protocol}://${req.get('host')}:/images/${fileName}`;
         });
+        const { name , price , published, discount, category } = req.body;
 
-        const { name , price , published, discount } = req.body;
-         
+         // Logging the category value for debugging purposes
+console.log("Category ID:", category);
+
         const calculateDiscount = price - (price * (discount / 100));
 
-        const product = await Product.create({ name, img: imageUrls, price, published, discount , totalPrice: calculateDiscount });
+        const product = await Product.create({category ,  name, img: imageUrls, price, published, discount , totalPrice: calculateDiscount });
         
         if(!product){
             return res.status(404).json({ success: false, msg: `Product Not Found`})
         }
         
+        console.log("Category ID:", category);
+const categoryObj = await Category.findById(category);
+
+
+        if (!categoryObj) {
+            return res.status(404).json({ success: false, msg: 'Category Not Found' });
+        }
+
+        categoryObj.product.push(product._id);
+        await categoryObj.save();
+
         res.status(200).json({success : true, msg : `Product create Successfully ......` , data : product})
         
     });
@@ -65,7 +79,7 @@ router.post('/addProduct', async (req, res) => {
 
 //update the product
 router.put('/updateProduct/:productId', async (req, res) => {
-
+    const productId = req.params.productId 
     try {
 
         upload( req, res , async(err) => {
@@ -86,13 +100,14 @@ router.put('/updateProduct/:productId', async (req, res) => {
             });
 
              // Get the existing product
-             const existingProduct = await Product.findById(req.params.productId);
+        
+             const existingProduct = await Product.findById(productId);
 
             if(!existingProduct){
                 return res.status(404).json({message: 'Product not found'});
             }
 
-            const { name , price, published, discount } = req.body;
+            const { name , price, published, discount , category} = req.body;
 
             const calculateDiscount = price - (price * (discount / 100));
 
@@ -102,13 +117,16 @@ router.put('/updateProduct/:productId', async (req, res) => {
                 price : price || existingProduct.price,
                 discount : discount || existingProduct.discount,
                 published : published || existingProduct.published,
-                totalPrice : calculateDiscount || existingProduct.totalPrice
+                totalPrice : calculateDiscount || existingProduct.totalPrice,
+                category : category || existingProduct.category ,
             }
 
-            const updatedProduct = await Product.findByIdAndUpdate({ _id : req.params.productId },{
+            const updatedProduct = await Product.findByIdAndUpdate(productId ,{
                 $set : updateFields
             }, 
             {new : true});
+
+            const updatProductCategory = await Product.updateMany({ product : productId})
 
             res.status(200).json({ success: true, msg: `Product Updated Successfully ......`, data : updatedProduct });
         });
@@ -124,17 +142,20 @@ router.put('/updateProduct/:productId', async (req, res) => {
 
 
 //delete the product
-router.delete('/deleteProduct/:id', async (req, res) => {
+router.delete('/deleteProduct/:productId', async (req, res) => {
 
     try {
+const productId = req.params.productId;
 
-        const deleteProduct = await Product.findByIdAndDelete({_id : req.params.id});
+        const deleteProduct = await Product.findByIdAndDelete( productId);
 
         if(!deleteProduct) {
-            res.status(404).json({ success: false, msg: `Product Not Found`})
+            return res.status(404).json({ success: false, msg: `Product Not Found`})
         }
-       
-        res.status(200).json({ success: true, msg: `Deleted Successfully ......`, data : deleteProduct});
+
+        const deleteProductCategory  = await Category.deleteMany({ product : productId});
+        
+        res.status(200).json({ success: true, msg: `Deleted Successfully ......`, data : deleteProduct, deleteProductCategory});
 
     }catch (error) {
         console.error(error); // Log the error for debugging purposes

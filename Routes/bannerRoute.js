@@ -6,6 +6,7 @@ const router = require("express").Router();
 const Banner = require("../Models/bannerModel");
 const multer = require('multer');
 const express = require("express");
+const Product = require("../Models/productModel");
 
 const Storage = multer.diskStorage({
     destination: 'uploads',
@@ -32,7 +33,7 @@ router.post('/addBanner', async (req, res) => {
                 return res.status(500).json({ success: false, msg: 'File upload failed' });
             }
 
-            const { name, description, published } = req.body;
+            const { name, description, published, type } = req.body;
 
             // Check if any files were uploaded
             if (!req.files || req.files.length === 0) {
@@ -49,7 +50,7 @@ router.post('/addBanner', async (req, res) => {
                 name,
                 image: imageUrls, // Store the filenames in the array
                 description,
-                published,
+                published, type
             });
 
             if (!addBanner) {
@@ -84,7 +85,7 @@ router.put("/updateBanner/:bannerId", async (req, res) => {
                 console.error(err); // Log multer-related errors
                 return res.status(500).json({ success: false, msg: 'File upload failed' });
             }
-            const { name, description, published, } = req.body;
+            const { name, description, published,type } = req.body;
 
             if (!req.files || req.files.length === 0) {
                 return res.status(400).json({ success: false, msg: `Invalid images Found` });
@@ -99,8 +100,12 @@ router.put("/updateBanner/:bannerId", async (req, res) => {
             const updateBanner = await Banner.findByIdAndUpdate({ _id: bannerId }, {
                 name: name, description: description,
                 image: imageUrls,
-                published: published
+                published: published , type  : type,
             }, { new: true });
+
+            if(updateBanner.type  === 'category') {
+                await Product.updateMany({category: updateBanner})
+            }
 
             res
                 .status(200)
@@ -134,7 +139,9 @@ router.delete('/deleteBanner/:bannerId', async (req, res) => {
             return res.status(404).json({ success: false, msg: `Banner Not Found` })
         }
 
-        res.status(200).json({ success: true, msg: `Banner Deleted Successfully ......`, data: bannerExists })
+        const deleteProductCategory = await Product.deleteMany({ category: bannerId})
+
+        res.status(200).json({ success: true, msg: `Banner Deleted Successfully ......`, data: bannerExists , deleteProductCategory });
 
     } catch (error) {
         console.error(error); // Log the error for debugging purposes
@@ -150,13 +157,27 @@ router.get('/allBanner', async (req, res) => {
 
     try {
 
-        const bannerExists = await Banner.find();
-
+        // const bannerExists = await Banner.find({type : 'banner'} || { type: 'category'});
+        const type  = req.query.type ;
+       if (type === 'banner') {
+        const bannerExists = await Banner.find({type : 'banner'});
+        
+        
         if (!bannerExists) {
             return res.status(404).json({ success: false, msg: `Banner Not Found` })
         }
-
+        
         res.status(200).json({ success: true, msg: `Get All Banner Successfully ......`, data: bannerExists })
+        
+    }
+    const bannerExists = await Banner.find({type : 'category'});
+        
+        
+        if (!bannerExists) {
+            return res.status(404).json({ success: false, msg: `Category Not Found` })
+        }
+        
+        res.status(200).json({ success: true, msg: `Get All Category Successfully ......`, data: bannerExists })
 
     } catch (error) {
         console.error(error); // Log the error for debugging purposes
@@ -196,14 +217,25 @@ router.get('/singleBanner/:bannerId', async (req, res) => {
 router.get('/publishedBanner', async (req, res) => {
 
     try {
+        const type = req.query.type ;
+        if (type === 'banner') {
+        const bannerExists = await Banner.find({ $and: [{ type: 'banner' }, { published : true }] });
+        
+        if (!bannerExists) {
+            return res.status(404).json({ success: false, msg: `Banner Not Found` })
+        }
+        
+        return res.status(200).json({ success: true, msg: `Get Published Banner Successfully ......`, data: bannerExists })
 
-        const bannerExists = await Banner.find({published : true});
+    }
+
+        const bannerExists = await Banner.find({ $and: [{published : true }, { type: 'category' }] });
 
         if (!bannerExists) {
             return res.status(404).json({ success: false, msg: `Banner Not Found` })
         }
 
-        res.status(200).json({ success: true, msg: `Get Published Banner Successfully ......`, data: bannerExists })
+        res.status(200).json({ success: true, msg: `Get Published Category Successfully ......`, data: bannerExists })
 
     } catch (error) {
         console.error(error); // Log the error for debugging purposes
