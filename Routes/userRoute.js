@@ -239,7 +239,7 @@ router.post('/forgotPassword/:id', async (req, res) => {
 router.get('/resetPassword/:id', async (req, res) => {
 
     const { token } = req.query.token;
-    const { password } = req.body ;
+ 
 
     try {
 
@@ -248,7 +248,8 @@ router.get('/resetPassword/:id', async (req, res) => {
         if(!tokenCheck){
             res.status(404).json({ success: false, msg: `This token is not available`});
         }
-
+        
+        const { password } = req.body ;
         const newPassword = await bcrypt.hash(password,10);
 
         const resetPassword = await User.findOneAndUpdate({_id : tokenCheck._id},
