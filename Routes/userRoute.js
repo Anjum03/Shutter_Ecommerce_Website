@@ -217,9 +217,11 @@ router.post('/forgotPassword/:id', async (req, res) => {
         return res.status(404).json({ success: false, msg: `User Not Found`});
        }
 
-        const randomString = randomstring.generate(7);      
+        const randomString = randomstring.generate(7);     
         
-        const updateTokeninDB = await User.findOneAndUpdate({email : email}, {$set :{token: randomString}}, {new : true});
+        const activationUrl = `http://99.79.64.2:3001/forgetPassword?token=${randomString}`;
+        
+        const updateTokeninDB = await User.findOneAndUpdate({email : email}, {$set :{token: randomString}},);
 
         //send email
         sendEmailFunction.sendEmail(email, updateTokeninDB);
@@ -239,7 +241,6 @@ router.post('/forgotPassword/:id', async (req, res) => {
 router.get('/resetPassword/:id', async (req, res) => {
 
     const { token } = req.query.token;
-    const { password } = req.body ;
 
     try {
 
@@ -248,7 +249,7 @@ router.get('/resetPassword/:id', async (req, res) => {
         if(!tokenCheck){
             res.status(404).json({ success: false, msg: `This token is not available`});
         }
-
+        const { password } = req.body ;
         const newPassword = await bcrypt.hash(password,10);
 
         const resetPassword = await User.findOneAndUpdate({_id : tokenCheck._id},

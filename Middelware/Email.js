@@ -3,9 +3,12 @@
 require('dotenv').config();
 const nodemailer = require("nodemailer");
 const mailgen = require("mailgen");
+const randomstring = require("randomstring");
+
+const randomString = randomstring.generate(7);
 
 //email generator function to send email
-function sendEmail(email, token, next) {
+function sendEmail(email, req, next) {
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -34,7 +37,7 @@ console.log(transporter.auth, "Transporter");
 
     const emailFormat = {
       body: {
-        name: "Email", //user Name
+        name: "User", //user Name
         intro:
           "you have received this email because a password reset request for your account was received.",
         action: {
@@ -42,7 +45,7 @@ console.log(transporter.auth, "Transporter");
           button: {
             color: "black",
             text: "Reset your Password",
-            link: "http://localhost:3000/resetPassword?token=" + token + "",
+            link: `http://99.79.64.2:3001/forgetPassword?token=${randomString}`,
           },
         },
         outro:

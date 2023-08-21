@@ -8,6 +8,7 @@ const userSchema = new mongoose.Schema(
     phone: Number,
     address: String,
     password: { type: String },
+    token: String,
     role: { type: String, enum: ["admin", "user"], default: "user" },
   },
   { timestamps: true }
